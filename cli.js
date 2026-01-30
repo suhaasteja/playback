@@ -183,12 +183,12 @@ async function main() {
   }
 
   const data = await res.json();
-  const url = `${server}/session/${data.session_id}`;
-  console.log(url);
+  const sessionUrl = `${server}/session/${data.session_id}`;
+  console.log(sessionUrl);
 
   if (shouldOpen) {
     try {
-      execFileSync("open", [url], { stdio: "ignore" });
+      execFileSync("open", [sessionUrl], { stdio: "ignore" });
     } catch {
       // Ignore errors; user can open manually
     }
