@@ -191,6 +191,7 @@ function renderDetail() {
     "",
     `Agent summary: ${step.agent_summary || ""}`,
     step.reasoning_summary ? `Reasoning: ${step.reasoning_summary}` : "",
+    step.context_summary ? `Context: ${step.context_summary}` : "",
     "",
     `Tools:\n${tools.length ? tools.join("\n") : "(none)"}`,
     "",
@@ -201,7 +202,7 @@ function renderDetail() {
 
   detailBody.textContent = detail;
   if (stepSummaryBody) {
-    stepSummaryBody.textContent = step.ai_summary || "No step summary yet.";
+    stepSummaryBody.textContent = step.context_summary || "No contextual summary yet.";
   }
 }
 
@@ -430,7 +431,7 @@ if (stepSummaryBtn) {
     stepSummaryBody.textContent = "Summarizing step...";
     try {
       const res = await fetch(
-        `/api/sessions/${state.sessionId}/steps/${state.currentIndex}/summary`,
+        `/api/sessions/${state.sessionId}/steps/${state.currentIndex}/context-summary`,
         { method: "POST" }
       );
       if (!res.ok) {
@@ -440,7 +441,7 @@ if (stepSummaryBtn) {
       }
       const data = await res.json();
       if (state.steps[state.currentIndex]) {
-        state.steps[state.currentIndex].ai_summary = data.summary || "";
+        state.steps[state.currentIndex].context_summary = data.summary || "";
       }
       stepSummaryBody.textContent = data.summary || "Summary unavailable.";
     } catch (err) {

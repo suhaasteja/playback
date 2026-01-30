@@ -138,6 +138,33 @@ async function summarizeStep(step) {
   return extractOutputText(response) || "Summary unavailable.";
 }
 
+async function summarizeStepInContext(session, step) {
+  if (!openai) {
+    throw new Error("OPENAI_API_KEY not set");
+  }
+  const sessionSummary = session.meta?.ai_summary || (await summarizeSession(session));
+  const stepText = buildStepTranscript(step);
+  const prompt = [
+    "You are summarizing a single step within a larger coding session.",
+    "Use the session summary to explain the role and impact of this step.",
+    "Return 1-2 concise sentences. Avoid chain-of-thought.",
+    "",
+    "Session summary:",
+    sessionSummary,
+    "",
+    "Step content:",
+    stepText,
+  ].join("\n");
+
+  const response = await openai.responses.create({
+    model: OPENAI_MODEL,
+    input: prompt,
+    temperature: 0.2,
+  });
+
+  return extractOutputText(response) || "Summary unavailable.";
+}
+
 app.post("/api/sessions", async (req, res) => {
   const body = req.body;
   if (!body || !Array.isArray(body.steps)) {
@@ -225,6 +252,33 @@ app.post("/api/sessions/:id/steps/:index/summary", async (req, res) => {
     const step = entry.data.steps[index];
     const summary = await summarizeStep(step);
     entry.data.steps[index].ai_summary = summary;
+    res.json({ summary });
+  } catch (err) {
+    res.status(500).json({ error: err?.message || "Summary failed" });
+  }
+});
+
+app.post("/api/sessions/:id/steps/:index/context-summary", async (req, res) => {
+  if (!openai) {
+    return res.status(501).json({ error: "LLM not configured" });
+  }
+  pruneExpired();
+  const entry = store.get(req.params.id);
+  if (!entry) {
+    return res.status(404).json({ error: "Not found" });
+  }
+  const index = Number.parseInt(req.params.index, 10);
+  if (Number.isNaN(index) || index < 0 || index >= entry.data.steps.length) {
+    return res.status(400).json({ error: "Invalid step index" });
+  }
+  try {
+    const step = entry.data.steps[index];
+    const summary = await summarizeStepInContext(entry.data, step);
+    entry.data.meta = entry.data.meta || {};
+    if (!entry.data.meta.ai_summary) {
+      entry.data.meta.ai_summary = await summarizeSession(entry.data);
+    }
+    entry.data.steps[index].context_summary = summary;
     res.json({ summary });
   } catch (err) {
     res.status(500).json({ error: err?.message || "Summary failed" });
