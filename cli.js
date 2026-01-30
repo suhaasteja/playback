@@ -3,7 +3,7 @@ import path from "path";
 import { execFileSync } from "child_process";
 
 function usage() {
-  console.log("Usage: node cli.js <session.jsonl|session.json> [--server URL] [--open]");
+  console.log("Usage: node cli.js <session.jsonl|session.json> [--server URL] [--open] [--summarize]");
 }
 
 function unique(arr) {
@@ -154,6 +154,7 @@ async function main() {
   const serverArg = args.findIndex((a) => a === "--server");
   const server = serverArg >= 0 ? args[serverArg + 1] : "http://localhost:3000";
   const shouldOpen = args.includes("--open");
+  const shouldSummarize = args.includes("--summarize");
 
   const raw = fs.readFileSync(filePath, "utf8");
   let session;
@@ -164,7 +165,12 @@ async function main() {
     session = parseJSONL(raw);
   }
 
-  const res = await fetch(`${server}/api/sessions`, {
+  const url = new URL(`${server}/api/sessions`);
+  if (shouldSummarize) {
+    url.searchParams.set("summarize", "1");
+  }
+
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(session),

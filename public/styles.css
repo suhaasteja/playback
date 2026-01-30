@@ -417,6 +417,21 @@ body {
   border: var(--border);
 }
 
+.summary-btn {
+  margin-top: 10px;
+  background: #fff;
+  color: var(--text-primary);
+  border: var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-family: 'VT323', monospace;
+}
+
+.summary-btn:active {
+  transform: translateY(1px);
+}
+
 .detail-title {
   font-family: 'Permanent Marker', cursive;
   font-size: 16px;
@@ -452,6 +467,10 @@ body.is-minimal .widget-header {
 body.is-minimal .deck-controls button,
 body.is-minimal .controls button,
 body.is-minimal .controls select {
+  box-shadow: none;
+}
+
+body.is-minimal .summary-btn {
   box-shadow: none;
 }
 

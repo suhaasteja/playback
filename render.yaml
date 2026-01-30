@@ -13,3 +13,5 @@ services:
         value: "200"
       - key: JSON_LIMIT
         value: "25mb"
+      - key: OPENAI_MODEL
+        value: "gpt-4.1"

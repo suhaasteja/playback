@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import OpenAI from "openai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,10 @@ const app = express();
 const JSON_LIMIT = process.env.JSON_LIMIT || "25mb";
 const TTL_SECONDS = Number.parseInt(process.env.TTL_SECONDS || "3600", 10);
 const MAX_SESSIONS = Number.parseInt(process.env.MAX_SESSIONS || "200", 10);
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1";
+
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
 const store = new Map();
 
@@ -42,7 +47,63 @@ function enforceMaxSessions() {
 
 setInterval(pruneExpired, 30 * 1000).unref();
 
-app.post("/api/sessions", (req, res) => {
+function extractOutputText(response) {
+  if (!response) return "";
+  if (typeof response.output_text === "string") return response.output_text;
+  const output = response.output || [];
+  const chunks = [];
+  for (const item of output) {
+    for (const content of item?.content || []) {
+      if (content?.type === "output_text" && typeof content.text === "string") {
+        chunks.push(content.text);
+      }
+    }
+  }
+  return chunks.join("").trim();
+}
+
+function buildTranscript(session, maxChars = 12000) {
+  const lines = [];
+  for (const step of session.steps || []) {
+    const tools = (step.tools || []).map((t) => t.name).filter(Boolean).join(", ");
+    if (step.user_text) lines.push(`User: ${step.user_text}`);
+    if (step.agent_summary) lines.push(`Agent: ${step.agent_summary}`);
+    if (step.reasoning_summary) lines.push(`Reasoning: ${step.reasoning_summary}`);
+    if (tools) lines.push(`Tools: ${tools}`);
+    if (step.agent_output) lines.push(`Output: ${step.agent_output}`);
+    lines.push("---");
+  }
+  const text = lines.join("\n");
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + "\n...(truncated)";
+}
+
+async function summarizeSession(session) {
+  if (!openai) {
+    throw new Error("OPENAI_API_KEY not set");
+  }
+  const transcript = buildTranscript(session);
+  const prompt = [
+    "You summarize coding agent sessions for a playback UI.",
+    "Return concise markdown with:",
+    "1) A 1-2 sentence summary.",
+    "2) 3-6 bullet key actions.",
+    "3) Tools used (comma-separated).",
+    "",
+    "Session transcript:",
+    transcript,
+  ].join("\n");
+
+  const response = await openai.responses.create({
+    model: OPENAI_MODEL,
+    input: prompt,
+    temperature: 0.2,
+  });
+
+  return extractOutputText(response) || "Summary unavailable.";
+}
+
+app.post("/api/sessions", async (req, res) => {
   const body = req.body;
   if (!body || !Array.isArray(body.steps)) {
     return res.status(400).json({ error: "Missing steps[]" });
@@ -60,6 +121,14 @@ app.post("/api/sessions", (req, res) => {
     meta: body.meta || {},
   };
 
+  if (req.query.summarize === "1" && openai) {
+    try {
+      session.meta.ai_summary = await summarizeSession(session);
+    } catch (err) {
+      session.meta.ai_summary_error = err?.message || "Summary failed";
+    }
+  }
+
   store.set(id, { data: session, expiresAt });
   enforceMaxSessions();
 
@@ -76,7 +145,32 @@ app.get("/api/sessions/:id", (req, res) => {
 });
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, sessions: store.size, ttl_seconds: TTL_SECONDS });
+  res.json({
+    ok: true,
+    sessions: store.size,
+    ttl_seconds: TTL_SECONDS,
+    llm: openai ? "enabled" : "disabled",
+    model: OPENAI_MODEL,
+  });
+});
+
+app.post("/api/sessions/:id/summary", async (req, res) => {
+  if (!openai) {
+    return res.status(501).json({ error: "LLM not configured" });
+  }
+  pruneExpired();
+  const entry = store.get(req.params.id);
+  if (!entry) {
+    return res.status(404).json({ error: "Not found" });
+  }
+  try {
+    const summary = await summarizeSession(entry.data);
+    entry.data.meta = entry.data.meta || {};
+    entry.data.meta.ai_summary = summary;
+    res.json({ summary });
+  } catch (err) {
+    res.status(500).json({ error: err?.message || "Summary failed" });
+  }
 });
 
 app.use(express.static(path.join(__dirname, "public")));

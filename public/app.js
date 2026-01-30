@@ -8,6 +8,8 @@ const state = {
 
 const laneRows = document.getElementById("laneRows");
 const detailBody = document.getElementById("detailBody");
+const summaryBody = document.getElementById("summaryBody");
+const summaryBtn = document.getElementById("summaryBtn");
 const sessionMeta = document.getElementById("sessionMeta");
 const tapeDeck = document.getElementById("tapeDeck");
 const labelTitle = document.getElementById("labelTitle");
@@ -300,11 +302,19 @@ function pause() {
 function loadSession(session) {
   state.session = session;
   state.steps = Array.isArray(session.steps) ? session.steps : [];
+  state.sessionId = session.id || null;
   state.currentIndex = 0;
   updateMeta();
   renderRows();
   renderDetail();
   updateDeck();
+  if (summaryBody) {
+    const summary = session.meta && session.meta.ai_summary;
+    summaryBody.textContent = summary || "No summary yet.";
+  }
+  if (summaryBtn) {
+    summaryBtn.disabled = !state.sessionId;
+  }
 }
 
 async function loadFromServer(sessionId) {
@@ -377,4 +387,28 @@ if (toggleMinimal) {
 const pathParts = window.location.pathname.split("/").filter(Boolean);
 if (pathParts[0] === "session" && pathParts[1]) {
   loadFromServer(pathParts[1]);
+}
+
+if (summaryBtn) {
+  summaryBtn.addEventListener("click", async () => {
+    if (!state.sessionId) {
+      summaryBody.textContent = "Upload to server to generate a summary.";
+      return;
+    }
+    summaryBody.textContent = "Generating summary...";
+    try {
+      const res = await fetch(`/api/sessions/${state.sessionId}/summary`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        summaryBody.textContent = `Summary failed: ${err}`;
+        return;
+      }
+      const data = await res.json();
+      summaryBody.textContent = data.summary || "Summary unavailable.";
+    } catch (err) {
+      summaryBody.textContent = err?.message || "Summary failed.";
+    }
+  });
 }

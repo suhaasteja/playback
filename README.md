@@ -24,6 +24,14 @@ It prints a URL like:
 http://localhost:3000/session/<session_id>
 ```
 
+### Generate LLM summary on upload
+
+```bash
+node /Users/mac/Desktop/playback-mvp/cli.js /path/to/session.jsonl --summarize
+```
+
+Set `OPENAI_API_KEY` and optional `OPENAI_MODEL` in your environment or Render.
+
 ## Deploy to Render
 
 This repo includes a `render.yaml` blueprint.
@@ -35,3 +43,5 @@ This repo includes a `render.yaml` blueprint.
 - `TTL_SECONDS` (default: 3600)
 - `MAX_SESSIONS` (default: 200)
 - `JSON_LIMIT` (default: 25mb)
+- `OPENAI_API_KEY` (required for summaries)
+- `OPENAI_MODEL` (default: gpt-4.1)
