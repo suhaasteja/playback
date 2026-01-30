@@ -78,6 +78,19 @@ function buildTranscript(session, maxChars = 12000) {
   return text.slice(0, maxChars) + "\n...(truncated)";
 }
 
+function buildStepTranscript(step, maxChars = 4000) {
+  const lines = [];
+  if (step?.user_text) lines.push(`User: ${step.user_text}`);
+  if (step?.agent_summary) lines.push(`Agent: ${step.agent_summary}`);
+  if (step?.reasoning_summary) lines.push(`Reasoning: ${step.reasoning_summary}`);
+  const tools = (step?.tools || []).map((t) => t.name).filter(Boolean).join(", ");
+  if (tools) lines.push(`Tools: ${tools}`);
+  if (step?.agent_output) lines.push(`Output: ${step.agent_output}`);
+  const text = lines.join("\n");
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + "\n...(truncated)";
+}
+
 async function summarizeSession(session) {
   if (!openai) {
     throw new Error("OPENAI_API_KEY not set");
@@ -91,6 +104,28 @@ async function summarizeSession(session) {
     "3) Tools used (comma-separated).",
     "",
     "Session transcript:",
+    transcript,
+  ].join("\n");
+
+  const response = await openai.responses.create({
+    model: OPENAI_MODEL,
+    input: prompt,
+    temperature: 0.2,
+  });
+
+  return extractOutputText(response) || "Summary unavailable.";
+}
+
+async function summarizeStep(step) {
+  if (!openai) {
+    throw new Error("OPENAI_API_KEY not set");
+  }
+  const transcript = buildStepTranscript(step);
+  const prompt = [
+    "Summarize this single step from a coding agent session.",
+    "Return 1-2 concise sentences. Avoid chain-of-thought.",
+    "",
+    "Step content:",
     transcript,
   ].join("\n");
 
@@ -167,6 +202,29 @@ app.post("/api/sessions/:id/summary", async (req, res) => {
     const summary = await summarizeSession(entry.data);
     entry.data.meta = entry.data.meta || {};
     entry.data.meta.ai_summary = summary;
+    res.json({ summary });
+  } catch (err) {
+    res.status(500).json({ error: err?.message || "Summary failed" });
+  }
+});
+
+app.post("/api/sessions/:id/steps/:index/summary", async (req, res) => {
+  if (!openai) {
+    return res.status(501).json({ error: "LLM not configured" });
+  }
+  pruneExpired();
+  const entry = store.get(req.params.id);
+  if (!entry) {
+    return res.status(404).json({ error: "Not found" });
+  }
+  const index = Number.parseInt(req.params.index, 10);
+  if (Number.isNaN(index) || index < 0 || index >= entry.data.steps.length) {
+    return res.status(400).json({ error: "Invalid step index" });
+  }
+  try {
+    const step = entry.data.steps[index];
+    const summary = await summarizeStep(step);
+    entry.data.steps[index].ai_summary = summary;
     res.json({ summary });
   } catch (err) {
     res.status(500).json({ error: err?.message || "Summary failed" });

@@ -432,6 +432,11 @@ body {
   transform: translateY(1px);
 }
 
+#stepSummaryBody {
+  margin-top: 8px;
+  color: var(--text-muted);
+}
+
 .detail-title {
   font-family: 'Permanent Marker', cursive;
   font-size: 16px;

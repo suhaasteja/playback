@@ -10,6 +10,8 @@ const laneRows = document.getElementById("laneRows");
 const detailBody = document.getElementById("detailBody");
 const summaryBody = document.getElementById("summaryBody");
 const summaryBtn = document.getElementById("summaryBtn");
+const stepSummaryBtn = document.getElementById("stepSummaryBtn");
+const stepSummaryBody = document.getElementById("stepSummaryBody");
 const sessionMeta = document.getElementById("sessionMeta");
 const tapeDeck = document.getElementById("tapeDeck");
 const labelTitle = document.getElementById("labelTitle");
@@ -198,6 +200,9 @@ function renderDetail() {
     .join("\n");
 
   detailBody.textContent = detail;
+  if (stepSummaryBody) {
+    stepSummaryBody.textContent = step.ai_summary || "No step summary yet.";
+  }
 }
 
 function updateMeta() {
@@ -315,6 +320,9 @@ function loadSession(session) {
   if (summaryBtn) {
     summaryBtn.disabled = !state.sessionId;
   }
+  if (stepSummaryBtn) {
+    stepSummaryBtn.disabled = !state.sessionId;
+  }
 }
 
 async function loadFromServer(sessionId) {
@@ -409,6 +417,34 @@ if (summaryBtn) {
       summaryBody.textContent = data.summary || "Summary unavailable.";
     } catch (err) {
       summaryBody.textContent = err?.message || "Summary failed.";
+    }
+  });
+}
+
+if (stepSummaryBtn) {
+  stepSummaryBtn.addEventListener("click", async () => {
+    if (!state.sessionId) {
+      stepSummaryBody.textContent = "Upload to server to summarize a step.";
+      return;
+    }
+    stepSummaryBody.textContent = "Summarizing step...";
+    try {
+      const res = await fetch(
+        `/api/sessions/${state.sessionId}/steps/${state.currentIndex}/summary`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const err = await res.text();
+        stepSummaryBody.textContent = `Summary failed: ${err}`;
+        return;
+      }
+      const data = await res.json();
+      if (state.steps[state.currentIndex]) {
+        state.steps[state.currentIndex].ai_summary = data.summary || "";
+      }
+      stepSummaryBody.textContent = data.summary || "Summary unavailable.";
+    } catch (err) {
+      stepSummaryBody.textContent = err?.message || "Summary failed.";
     }
   });
 }
