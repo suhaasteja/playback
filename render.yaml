@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: playback
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: false
+    envVars:
+      - key: TTL_SECONDS
+        value: "3600"
+      - key: MAX_SESSIONS
+        value: "200"
+      - key: JSON_LIMIT
+        value: "25mb"
