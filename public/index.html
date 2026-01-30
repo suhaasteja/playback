@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Playback</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">▶</div>
+          <div>
+            <div class="title">Playback</div>
+            <div class="subtitle" id="sessionMeta">No session loaded</div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="btnPlay">Play</button>
+          <button id="btnPause">Pause</button>
+          <button id="btnPrev">Prev</button>
+          <button id="btnNext">Next</button>
+          <label class="speed">
+            Speed
+            <select id="speed">
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="2">2x</option>
+            </select>
+          </label>
+          <label class="file">
+            Load JSON/JSONL
+            <input id="fileInput" type="file" accept=".json,.jsonl" />
+          </label>
+          <button id="toggleMinimal" title="Toggle minimal view">Minimal</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="timeline">
+          <div class="lane-header">
+            <div class="lane-title lane-user">User</div>
+            <div class="lane-title lane-agent">Agent</div>
+            <div class="lane-title lane-tools">Tools</div>
+            <div class="lane-title lane-output">Output</div>
+          </div>
+          <div class="tape-deck widget-container" id="tapeDeck">
+            <div class="widget-header">
+              <span class="brand-label">PLAYBACK</span>
+              <span class="deck-title" id="labelTitle">Playback</span>
+            </div>
+            <div class="visualizer-stage">
+              <div class="tape-reel"></div>
+              <div class="eq-bars" id="eqBars">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+              </div>
+              <button class="record-trigger" id="recordBtn" title="Play/Pause">
+                <div class="trigger-icon"></div>
+              </button>
+            </div>
+            <div class="widget-footer">
+              <div class="status-row">
+                <div class="main-readout" id="statusText">Ready to replay</div>
+                <div class="timer-display" id="timeCode">00:00:00</div>
+              </div>
+              <div class="scrub-row">
+                <input id="scrubber" type="range" min="0" max="0" value="0" />
+                <div class="deck-meta">
+                  <span id="stepCounter">Step 0 / 0</span>
+                  <span id="speedLabel">1x</span>
+                </div>
+              </div>
+              <div class="deck-controls">
+                <button id="deckPrev" title="Previous">⟲</button>
+                <button id="deckPlay" title="Play">▶</button>
+                <button id="deckPause" title="Pause">❚❚</button>
+                <button id="deckNext" title="Next">⟳</button>
+              </div>
+            </div>
+          </div>
+          <div id="laneRows" class="lane-rows"></div>
+        </section>
+
+        <aside class="detail">
+          <div class="detail-card">
+            <div class="detail-title">Step Details</div>
+            <div id="detailBody" class="detail-body">Load a session to begin.</div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
