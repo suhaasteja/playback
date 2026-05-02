@@ -102,11 +102,16 @@ export default function App() {
     setStepSummaryError(false);
   }, [pause]);
 
-  // Load session from URL
+  // Load session from URL or fall back to mock session
   useEffect(() => {
     const parts = window.location.pathname.split('/').filter(Boolean);
     if (parts[0] === 'session' && parts[1]) {
       fetch(`/api/sessions/${parts[1]}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((sess) => { if (sess) loadSession(sess); })
+        .catch(() => {});
+    } else {
+      fetch('/mock-session.json')
         .then((r) => (r.ok ? r.json() : null))
         .then((sess) => { if (sess) loadSession(sess); })
         .catch(() => {});
