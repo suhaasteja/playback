@@ -1,50 +1,37 @@
-# Playback 📼
+# Playback
 
-Playback turns raw agent session logs into a clear, step‑by‑step timeline so you can see what the user asked, what the agent did, which tools ran, and how the session progressed.
+Replay Claude Code sessions step-by-step — see what the user asked, what the agent reasoned, which tools ran, and what it produced.
 
-Playback UI
-<img width="1512" height="807" alt="Screenshot 2026-05-01 at 9 26 42 PM" src="https://github.com/user-attachments/assets/e699049b-42cc-4a2d-9ef8-e3c81604949c" />
+**Live:** https://d2mrbvk2km69op.cloudfront.net
+
+![Playback UI](https://github.com/user-attachments/assets/e699049b-42cc-4a2d-9ef8-e3c81604949c)
+
+## Architecture
+
+```
+Browser
+  │
+  ▼
+CloudFront (HTTPS)
+  ├── /*      → S3 (React app)
+  └── /api/*  → ALB → ECS Fargate
+                         ├── node-api  → DynamoDB (sessions)
+                         └── summarizer → OpenAI API
+```
 
 ## Run locally
 
 ```bash
-cd /Users/mac/Desktop/playback-mvp
 npm install
-npm start
+npm start        # backend on :4000
+cd client && npm run dev   # frontend on :5173
 ```
 
-Open: `http://localhost:3000`
+Drop any `.jsonl` from `~/.claude/projects/` onto the app to load a real session.
 
-## Upload a session
+## AI summaries (optional)
 
 ```bash
-node /Users/mac/Desktop/playback-mvp/cli.js /path/to/session.jsonl
+cd summarizer
+OPENAI_API_KEY=sk-... uvicorn main:app --port 8000
 ```
-
-It prints a URL like:
-
-```
-http://localhost:3000/session/<session_id>
-```
-
-### Generate LLM summary on upload
-
-```bash
-node /Users/mac/Desktop/playback-mvp/cli.js /path/to/session.jsonl --summarize
-```
-
-Set `OPENAI_API_KEY` and optional `OPENAI_MODEL` in your environment or Render.
-
-## Deploy to Render
-
-This repo includes a `render.yaml` blueprint.
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/suhaasteja/playback)
-
-### Environment variables
-
-- `TTL_SECONDS` (default: 3600)
-- `MAX_SESSIONS` (default: 200)
-- `JSON_LIMIT` (default: 25mb)
-- `OPENAI_API_KEY` (required for summaries)
-- `OPENAI_MODEL` (default: gpt-4.1)
