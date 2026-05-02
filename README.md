@@ -2,7 +2,8 @@
 
 Playback turns raw agent session logs into a clear, step‑by‑step timeline so you can see what the user asked, what the agent did, which tools ran, and how the session progressed.
 
-![Playback UI](./screenshot.png)
+Playback UI
+<img width="1512" height="807" alt="Screenshot 2026-05-01 at 9 26 42 PM" src="https://github.com/user-attachments/assets/e699049b-42cc-4a2d-9ef8-e3c81604949c" />
 
 ## Run locally
 
