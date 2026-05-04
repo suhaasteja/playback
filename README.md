@@ -4,8 +4,6 @@ Replay Claude Code sessions step-by-step — see what the user asked, what the a
 
 **Live:** https://d2mrbvk2km69op.cloudfront.net
 
-![Playback UI](https://github.com/user-attachments/assets/e699049b-42cc-4a2d-9ef8-e3c81604949c)
-
 ## Architecture
 
 ```
